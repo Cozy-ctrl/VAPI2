@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VAPI Call Initiator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      background-color: #e8f5e9;
+      display: none;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>VAPI Call Initiator</h1>
+    <form id="callForm">
+      <div>
+        <label for="phoneNumber">Phone Number (E.164 format, e.g., +12345678900):</label>
+        <input type="text" id="phoneNumber" name="phoneNumber" placeholder="+12345678900" required>
+      </div>
+      <button type="submit">Initiate Call</button>
+    </form>
+    
+    <div id="result" class="result">
+      <h3>Result:</h3>
+      <pre id="resultContent"></pre>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('callForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const phoneNumber = document.getElementById('phoneNumber').value;
+      const resultDiv = document.getElementById('result');
+      const resultContent = document.getElementById('resultContent');
+      
+      resultDiv.style.display = 'none';
+      resultDiv.classList.remove('error');
+      
+      try {
+        // Replace with your actual server URL
+        const response = await fetch('http://localhost:3000/initiate-call', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ phoneNumber }),
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to initiate call');
+        }
+        
+        resultContent.textContent = JSON.stringify(data, null, 2);
+        resultDiv.style.display = 'block';
+        
+        // If you want to poll for call status
+        if (data.callId) {
+          pollCallStatus(data.callId);
+        }
+      } catch (error) {
+        resultContent.textContent = error.message;
+        resultDiv.classList.add('error');
+        resultDiv.style.display = 'block';
+      }
+    });
+    
+    async function pollCallStatus(callId) {
+      // This is a simple example of polling - you might want to implement a more sophisticated approach
+      try {
+        const response = await fetch(`http://localhost:3000/call/${callId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          console.log('Call status:', data.callDetails.status);
+          
+          // Continue polling if call is still active
+          if (['scheduled', 'queued', 'ringing', 'in-progress'].includes(data.callDetails.status)) {
+            setTimeout(() => pollCallStatus(callId), 5000); // Poll every 5 seconds
+          }
+        }
+      } catch (error) {
+        console.error('Error polling call status:', error);
+      }
+    }
+  </script>
+</body>
+</html>
