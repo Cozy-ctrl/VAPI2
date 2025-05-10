@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { VapiClient } = require('./dist');
+const { VapiClient } = require('./dist/index');
 
 // Initialize the Vapi client with your API token
 const vapiClient = new VapiClient({
@@ -13,6 +13,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -87,5 +88,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`Call initiation endpoint: http://localhost:${PORT}/initiate-call`);
+  console.log(`Web interface: http://localhost:${PORT}`);
 });
